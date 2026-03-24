@@ -1,0 +1,93 @@
+[
+  {
+    "Id": "task-1",
+    "Title": "Setup project structure and dependencies",
+    "Description": "Create the loadtest package directory structure with __init__.py files. Update requirements.txt to include aiohttp, click, rich, pytest-asyncio, and pyyaml. Create placeholder files for all main modules.",
+    "BranchName": "worker/task-1",
+    "Dependencies": []
+  },
+  {
+    "Id": "task-2",
+    "Title": "Implement configuration manager",
+    "Description": "Create loadtest/config.py with a Config class that handles default values, validation, and parsing of test parameters. Include support for URL, method, requests count, concurrency level, timeout, headers, and body. Write tests in tests/test_config.py.",
+    "BranchName": "worker/task-2",
+    "Dependencies": [
+      "task-1"
+    ]
+  },
+  {
+    "Id": "task-3",
+    "Title": "Implement metrics collector",
+    "Description": "Create loadtest/metrics.py with a MetricsCollector class that stores request results and calculates statistics (min, max, mean, median, percentiles, throughput, error rate). Write tests in tests/test_metrics.py.",
+    "BranchName": "worker/task-3",
+    "Dependencies": [
+      "task-1"
+    ]
+  },
+  {
+    "Id": "task-4",
+    "Title": "Implement report generator",
+    "Description": "Create loadtest/reporter.py with a Reporter class that formats metrics into human-readable console output using the rich library. Include summary statistics, status code distribution, and performance metrics. Write tests in tests/test_reporter.py.",
+    "BranchName": "worker/task-4",
+    "Dependencies": [
+      "task-3"
+    ]
+  },
+  {
+    "Id": "task-5",
+    "Title": "Implement async request engine",
+    "Description": "Create loadtest/engine.py with an Engine class that uses aiohttp to execute concurrent HTTP requests. Implement async request execution with connection pooling, timeout handling, and error capture. Write tests in tests/test_engine.py using mocked responses.",
+    "BranchName": "worker/task-5",
+    "Dependencies": [
+      "task-2",
+      "task-3"
+    ]
+  },
+  {
+    "Id": "task-6",
+    "Title": "Implement CLI interface",
+    "Description": "Create loadtest/cli.py using click to parse command-line arguments for URL, method, requests, concurrency, headers, body, timeout, and output file. Include help text and validation. Map CLI args to Config object.",
+    "BranchName": "worker/task-6",
+    "Dependencies": [
+      "task-2"
+    ]
+  },
+  {
+    "Id": "task-7",
+    "Title": "Create main entry point",
+    "Description": "Create loadtest/__main__.py that coordinates the CLI, config, engine, metrics, and reporter. Implement the main execution flow: parse args -\u003E run engine -\u003E collect metrics -\u003E generate report. Add progress display using rich.",
+    "BranchName": "worker/task-7",
+    "Dependencies": [
+      "task-5",
+      "task-6",
+      "task-4"
+    ]
+  },
+  {
+    "Id": "task-8",
+    "Title": "Add integration tests",
+    "Description": "Create tests/test_integration.py with end-to-end tests that run the load testing tool against the existing Flask app. Test various scenarios: GET requests, POST requests, concurrent load, error handling.",
+    "BranchName": "worker/task-8",
+    "Dependencies": [
+      "task-7"
+    ]
+  },
+  {
+    "Id": "task-9",
+    "Title": "Create examples and update documentation",
+    "Description": "Create examples/sample_config.yaml with example configuration. Update README.md with comprehensive documentation including installation, usage examples, CLI options, and interpreting results. Add a quickstart guide.",
+    "BranchName": "worker/task-9",
+    "Dependencies": [
+      "task-7"
+    ]
+  },
+  {
+    "Id": "task-10",
+    "Title": "Add YAML config file support",
+    "Description": "Extend loadtest/config.py to support loading configuration from YAML files. Add --config CLI option to loadtest/cli.py. Update tests to cover YAML config loading. Handle merging of CLI args with config file values.",
+    "BranchName": "worker/task-10",
+    "Dependencies": [
+      "task-7"
+    ]
+  }
+]
