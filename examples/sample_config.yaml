@@ -1,10 +1,104 @@
 # Sample configuration file for load testing tool
+# ================================================
+# This file demonstrates various configuration scenarios for the load testing tool.
+# You can use this as a template for your own load tests.
 
-url: "http://localhost:5000/api/items"
+# Example 1: Basic GET request (Health check endpoint)
+# ----------------------------------------------------
+# Simple load test to check service availability and response times
+
+url: "http://localhost:5000/health"
 method: "GET"
 requests: 100
 concurrency: 10
 timeout: 30
-headers:
-  Content-Type: "application/json"
+headers: {}
 body: null
+
+# Example 2: GET request to API endpoint with custom headers
+# ----------------------------------------------------------
+# Uncomment and modify the following to test an API endpoint with authentication
+#
+# url: "http://localhost:5000/api/items"
+# method: "GET"
+# requests: 200
+# concurrency: 20
+# timeout: 30
+# headers:
+#   Authorization: "Bearer your-token-here"
+#   Accept: "application/json"
+# body: null
+
+# Example 3: POST request with JSON body
+# ---------------------------------------
+# Test creating resources with POST requests
+#
+# url: "http://localhost:5000/api/items"
+# method: "POST"
+# requests: 50
+# concurrency: 5
+# timeout: 30
+# headers:
+#   Content-Type: "application/json"
+# body: '{"name": "test item", "description": "Sample description for load testing"}'
+
+# Example 4: PUT request to update resources
+# -------------------------------------------
+# Test updating resources (replace {id} with actual resource ID)
+#
+# url: "http://localhost:5000/api/items/1"
+# method: "PUT"
+# requests: 30
+# concurrency: 3
+# timeout: 30
+# headers:
+#   Content-Type: "application/json"
+# body: '{"name": "updated item", "description": "Updated description"}'
+
+# Example 5: DELETE request
+# -------------------------
+# Test resource deletion (replace {id} with actual resource ID)
+#
+# url: "http://localhost:5000/api/items/1"
+# method: "DELETE"
+# requests: 10
+# concurrency: 2
+# timeout: 30
+# headers: {}
+# body: null
+
+# Example 6: High concurrency stress test
+# ----------------------------------------
+# Stress test with higher concurrency to find performance limits
+#
+# url: "http://localhost:5000/health"
+# method: "GET"
+# requests: 1000
+# concurrency: 100
+# timeout: 30
+# headers: {}
+# body: null
+
+# Configuration Parameters:
+# -------------------------
+# url:          Target URL for load testing (required)
+#               Must include scheme (http:// or https://)
+#
+# method:       HTTP method to use (default: GET)
+#               Valid values: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+#
+# requests:     Total number of requests to send (default: 100)
+#               Must be a positive integer
+#
+# concurrency:  Number of concurrent requests (default: 10)
+#               Must be positive and cannot exceed total requests
+#
+# timeout:      Request timeout in seconds (default: 30)
+#               Must be a positive integer
+#
+# headers:      Custom HTTP headers as key-value pairs (default: {})
+#               Example: {"Content-Type": "application/json", "Authorization": "Bearer token"}
+#
+# body:         Request body data (default: null)
+#               Typically used with POST, PUT, PATCH requests
+#               Can be JSON string, form data, or any string content
