@@ -1,0 +1,54 @@
+[
+  {
+    "Id": "task-1",
+    "Title": "Create joke service module",
+    "Description": "Create joke_service.py with a collection of jokes and a function to retrieve random jokes. Include at least 10-15 jokes in various categories (programming, dad jokes, general humor). Implement get_random_joke() function that returns a joke dictionary with \u0027setup\u0027 and \u0027punchline\u0027 or \u0027joke\u0027 text.",
+    "BranchName": "worker/task-1",
+    "Dependencies": []
+  },
+  {
+    "Id": "task-2",
+    "Title": "Create CLI interface module",
+    "Description": "Create joke_cli.py with argparse-based command-line interface. Implement main() function that parses arguments and displays jokes from the joke service. Support basic usage: \u0027python joke_cli.py\u0027 to display a random joke. Make the script executable with proper if __name__ == \u0027__main__\u0027 guard.",
+    "BranchName": "worker/task-2",
+    "Dependencies": []
+  },
+  {
+    "Id": "task-3",
+    "Title": "Add joke service tests",
+    "Description": "Create tests for joke_service.py in test_joke_cli.py. Test that get_random_joke() returns valid joke structure, jokes are non-empty, and multiple calls can return different jokes. Verify joke data structure consistency.",
+    "BranchName": "worker/task-3",
+    "Dependencies": [
+      "task-1"
+    ]
+  },
+  {
+    "Id": "task-4",
+    "Title": "Add CLI tests",
+    "Description": "Add tests for joke_cli.py in test_joke_cli.py. Test CLI argument parsing, output formatting, and integration with joke service. Mock joke service if needed. Verify script can be executed and produces expected output format.",
+    "BranchName": "worker/task-4",
+    "Dependencies": [
+      "task-2"
+    ]
+  },
+  {
+    "Id": "task-5",
+    "Title": "Update dependencies",
+    "Description": "Review and update requirements.txt if any new dependencies are needed for the joke CLI. Ensure all packages are pinned to appropriate versions. If no new dependencies are required (using only standard library), verify requirements.txt is still valid.",
+    "BranchName": "worker/task-5",
+    "Dependencies": []
+  },
+  {
+    "Id": "task-6",
+    "Title": "Update README documentation",
+    "Description": "Update README.md to document the new joke CLI feature. Add a new section explaining how to use the CLI, example commands, and expected output. Include installation/setup steps if needed. Keep existing Flask API documentation intact.",
+    "BranchName": "worker/task-6",
+    "Dependencies": [
+      "task-1",
+      "task-2",
+      "task-3",
+      "task-4",
+      "task-5"
+    ]
+  }
+]
