@@ -52,30 +52,30 @@ def parse_headers(ctx, param, value):
 
 @click.command()
 @click.option(
+    '--config',
+    type=click.Path(exists=True),
+    help='Path to YAML configuration file. CLI arguments override file values.'
+)
+@click.option(
     '--url', '-u',
-    required=True,
-    help='Target URL for load testing (required). Must include scheme (http:// or https://).'
+    help='Target URL for load testing. Must include scheme (http:// or https://). Required if --config is not provided.'
 )
 @click.option(
     '--method', '-m',
-    default='GET',
     help='HTTP method to use (default: GET). Valid: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS.'
 )
 @click.option(
     '--requests', '-n',
-    default=100,
     type=int,
     help='Number of requests to send (default: 100).'
 )
 @click.option(
     '--concurrency', '-c',
-    default=10,
     type=int,
     help='Number of concurrent requests (default: 10). Cannot exceed total requests.'
 )
 @click.option(
     '--timeout', '-t',
-    default=30,
     type=int,
     help='Request timeout in seconds (default: 30).'
 )
@@ -97,11 +97,12 @@ def parse_headers(ctx, param, value):
     help='Output file path for saving the report. If not specified, prints to console.'
 )
 def cli(
-    url: str,
-    method: str,
-    requests: int,
-    concurrency: int,
-    timeout: int,
+    config: Optional[str],
+    url: Optional[str],
+    method: Optional[str],
+    requests: Optional[int],
+    concurrency: Optional[int],
+    timeout: Optional[int],
     header: Dict[str, str],
     data: Optional[str],
     output: Optional[str]
@@ -122,26 +123,54 @@ def cli(
         -d '{"name": "test", "description": "test"}' \\
         -n 50 -c 5
     
+      # Using config file
+      loadtest --config loadtest.yaml
+    
+      # Using config file with CLI overrides
+      loadtest --config loadtest.yaml --requests 200 --concurrency 20
+    
       # Save report to file
       loadtest -u http://localhost:5000/health -n 100 -o report.json
     """
     try:
-        # Create Config object with validated parameters
-        config = Config(
-            url=url,
-            method=method,
-            requests=requests,
-            concurrency=concurrency,
-            timeout=timeout,
-            headers=header,
-            body=data
-        )
+        # If config file is provided, load it and merge with CLI args
+        if config:
+            file_config = Config.from_yaml_file(config)
+            
+            # Merge CLI overrides (only non-None values override file config)
+            config_obj = Config.merge(
+                file_config,
+                url=url,
+                method=method,
+                requests=requests,
+                concurrency=concurrency,
+                timeout=timeout,
+                headers=header if header else None,
+                body=data
+            )
+        else:
+            # No config file, URL is required from CLI
+            if not url:
+                raise click.BadParameter(
+                    "Either --config file or --url must be provided"
+                )
+            
+            # Create Config object with CLI parameters only
+            config_obj = Config(
+                url=url,
+                method=method,
+                requests=requests,
+                concurrency=concurrency,
+                timeout=timeout,
+                headers=header,
+                body=data
+            )
         
         # Store output file path in context for later use
         ctx = click.get_current_context()
-        ctx.obj = {'config': config, 'output': output}
+        ctx.obj = {'config': config_obj, 'output': output}
         
-        return config
+        return config_obj
         
     except ConfigError as e:
         raise click.BadParameter(str(e))

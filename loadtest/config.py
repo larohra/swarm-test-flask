@@ -5,6 +5,8 @@ Parses CLI arguments and configuration files, validates test parameters,
 and manages default values and test scenarios.
 """
 import json
+import yaml
+from pathlib import Path
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse
 
@@ -261,6 +263,70 @@ class Config:
             headers=config_dict.get("headers"),
             body=config_dict.get("body")
         )
+    
+    @classmethod
+    def from_yaml_file(cls, file_path: str) -> "Config":
+        """Create Config instance from YAML file.
+        
+        Args:
+            file_path: Path to YAML configuration file
+            
+        Returns:
+            Config instance
+            
+        Raises:
+            ConfigError: If file cannot be read or parsed, or configuration is invalid
+        """
+        path = Path(file_path)
+        
+        if not path.exists():
+            raise ConfigError(f"Configuration file not found: {file_path}")
+        
+        if not path.is_file():
+            raise ConfigError(f"Configuration path is not a file: {file_path}")
+        
+        try:
+            with open(path, 'r') as f:
+                config_dict = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ConfigError(f"Failed to parse YAML file: {e}")
+        except IOError as e:
+            raise ConfigError(f"Failed to read configuration file: {e}")
+        
+        if config_dict is None:
+            raise ConfigError("Configuration file is empty")
+        
+        return cls.from_dict(config_dict)
+    
+    @classmethod
+    def merge(cls, file_config: "Config", **cli_overrides) -> "Config":
+        """Merge file configuration with CLI argument overrides.
+        
+        CLI arguments take precedence over file configuration values.
+        Only non-None CLI values override file configuration.
+        
+        Args:
+            file_config: Config instance loaded from file
+            **cli_overrides: CLI argument overrides (url, method, requests, etc.)
+            
+        Returns:
+            New Config instance with merged values
+        """
+        # Start with file config values
+        merged = file_config.to_dict()
+        
+        # Override with CLI values if provided (not None)
+        for key, value in cli_overrides.items():
+            if value is not None:
+                # Special handling for headers - merge instead of replace
+                if key == 'headers' and isinstance(value, dict):
+                    merged_headers = merged.get('headers', {}).copy()
+                    merged_headers.update(value)
+                    merged['headers'] = merged_headers
+                else:
+                    merged[key] = value
+        
+        return cls.from_dict(merged)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary.

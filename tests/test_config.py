@@ -297,3 +297,262 @@ class TestConfig:
         assert "url='http://example.com'" in repr_str
         assert "method='GET'" in repr_str
         assert "requests=100" in repr_str
+
+
+class TestYAMLConfig:
+    """Test cases for YAML configuration file loading."""
+    
+    def test_from_yaml_file_basic(self, tmp_path):
+        """Test loading basic YAML config file."""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+url: "http://example.com"
+""")
+        
+        config = Config.from_yaml_file(str(config_file))
+        assert config.url == "http://example.com"
+        assert config.method == "GET"
+        assert config.requests == 100
+    
+    def test_from_yaml_file_complete(self, tmp_path):
+        """Test loading complete YAML config file."""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+url: "https://api.example.com/test"
+method: "POST"
+requests: 50
+concurrency: 5
+timeout: 60
+headers:
+  Content-Type: "application/json"
+  Authorization: "Bearer token"
+body: '{"test": "data"}'
+""")
+        
+        config = Config.from_yaml_file(str(config_file))
+        assert config.url == "https://api.example.com/test"
+        assert config.method == "POST"
+        assert config.requests == 50
+        assert config.concurrency == 5
+        assert config.timeout == 60
+        assert config.headers == {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer token"
+        }
+        assert config.body == '{"test": "data"}'
+    
+    def test_from_yaml_file_not_found(self):
+        """Test loading from non-existent file raises error."""
+        with pytest.raises(ConfigError, match="Configuration file not found"):
+            Config.from_yaml_file("/nonexistent/config.yaml")
+    
+    def test_from_yaml_file_is_directory(self, tmp_path):
+        """Test loading from directory instead of file raises error."""
+        with pytest.raises(ConfigError, match="not a file"):
+            Config.from_yaml_file(str(tmp_path))
+    
+    def test_from_yaml_file_invalid_yaml(self, tmp_path):
+        """Test loading invalid YAML raises error."""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+url: http://example.com
+invalid: yaml: syntax: here
+  wrong: indentation
+""")
+        
+        with pytest.raises(ConfigError, match="Failed to parse YAML"):
+            Config.from_yaml_file(str(config_file))
+    
+    def test_from_yaml_file_empty(self, tmp_path):
+        """Test loading empty YAML file raises error."""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("")
+        
+        with pytest.raises(ConfigError, match="Configuration file is empty"):
+            Config.from_yaml_file(str(config_file))
+    
+    def test_from_yaml_file_missing_url(self, tmp_path):
+        """Test loading YAML without URL raises error."""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+method: "GET"
+requests: 100
+""")
+        
+        with pytest.raises(ConfigError, match="must include 'url'"):
+            Config.from_yaml_file(str(config_file))
+    
+    def test_from_yaml_file_invalid_values(self, tmp_path):
+        """Test loading YAML with invalid values raises error."""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+url: "http://example.com"
+requests: -10
+""")
+        
+        with pytest.raises(ConfigError, match="must be greater than 0"):
+            Config.from_yaml_file(str(config_file))
+
+
+class TestConfigMerge:
+    """Test cases for merging config file with CLI arguments."""
+    
+    def test_merge_no_overrides(self):
+        """Test merging with no CLI overrides keeps file config."""
+        file_config = Config(
+            url="http://example.com",
+            method="POST",
+            requests=50
+        )
+        
+        merged = Config.merge(file_config)
+        assert merged.url == "http://example.com"
+        assert merged.method == "POST"
+        assert merged.requests == 50
+    
+    def test_merge_url_override(self):
+        """Test merging with URL override."""
+        file_config = Config(url="http://example.com")
+        
+        merged = Config.merge(file_config, url="http://override.com")
+        assert merged.url == "http://override.com"
+        assert merged.method == "GET"  # From file defaults
+    
+    def test_merge_method_override(self):
+        """Test merging with method override."""
+        file_config = Config(
+            url="http://example.com",
+            method="GET"
+        )
+        
+        merged = Config.merge(file_config, method="POST")
+        assert merged.url == "http://example.com"
+        assert merged.method == "POST"
+    
+    def test_merge_requests_and_concurrency_override(self):
+        """Test merging with requests and concurrency overrides."""
+        file_config = Config(
+            url="http://example.com",
+            requests=100,
+            concurrency=10
+        )
+        
+        merged = Config.merge(
+            file_config,
+            requests=200,
+            concurrency=20
+        )
+        assert merged.requests == 200
+        assert merged.concurrency == 20
+    
+    def test_merge_timeout_override(self):
+        """Test merging with timeout override."""
+        file_config = Config(
+            url="http://example.com",
+            timeout=30
+        )
+        
+        merged = Config.merge(file_config, timeout=60)
+        assert merged.timeout == 60
+    
+    def test_merge_headers_override(self):
+        """Test merging headers - should merge, not replace."""
+        file_config = Config(
+            url="http://example.com",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer token"
+            }
+        )
+        
+        merged = Config.merge(
+            file_config,
+            headers={"X-Custom": "value"}
+        )
+        
+        # Headers should be merged, not replaced
+        assert merged.headers == {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer token",
+            "X-Custom": "value"
+        }
+    
+    def test_merge_headers_override_existing(self):
+        """Test that CLI headers override file headers with same key."""
+        file_config = Config(
+            url="http://example.com",
+            headers={"Content-Type": "application/json"}
+        )
+        
+        merged = Config.merge(
+            file_config,
+            headers={"Content-Type": "text/plain"}
+        )
+        
+        assert merged.headers == {"Content-Type": "text/plain"}
+    
+    def test_merge_body_override(self):
+        """Test merging with body override."""
+        file_config = Config(
+            url="http://example.com",
+            body='{"old": "data"}'
+        )
+        
+        merged = Config.merge(file_config, body='{"new": "data"}')
+        assert merged.body == '{"new": "data"}'
+    
+    def test_merge_multiple_overrides(self):
+        """Test merging with multiple CLI overrides."""
+        file_config = Config(
+            url="http://example.com",
+            method="GET",
+            requests=100,
+            concurrency=10,
+            timeout=30
+        )
+        
+        merged = Config.merge(
+            file_config,
+            method="POST",
+            requests=200,
+            timeout=60,
+            headers={"X-Test": "value"}
+        )
+        
+        assert merged.url == "http://example.com"
+        assert merged.method == "POST"
+        assert merged.requests == 200
+        assert merged.concurrency == 10  # Not overridden
+        assert merged.timeout == 60
+        assert merged.headers == {"X-Test": "value"}
+    
+    def test_merge_none_values_ignored(self):
+        """Test that None CLI values don't override file config."""
+        file_config = Config(
+            url="http://example.com",
+            method="POST",
+            requests=50
+        )
+        
+        merged = Config.merge(
+            file_config,
+            method=None,
+            requests=None,
+            timeout=None
+        )
+        
+        # None values should not override file config
+        assert merged.method == "POST"
+        assert merged.requests == 50
+        assert merged.timeout == 30  # File default
+    
+    def test_merge_validation_errors(self):
+        """Test that merge still validates the final config."""
+        file_config = Config(
+            url="http://example.com",
+            requests=10
+        )
+        
+        # Trying to set concurrency higher than requests should fail
+        with pytest.raises(ConfigError, match="cannot exceed total requests"):
+            Config.merge(file_config, concurrency=20)
