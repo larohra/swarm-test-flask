@@ -1,0 +1,10 @@
+# Sample configuration file for load testing tool
+
+url: "http://localhost:5000/api/items"
+method: "GET"
+requests: 100
+concurrency: 10
+timeout: 30
+headers:
+  Content-Type: "application/json"
+body: null
